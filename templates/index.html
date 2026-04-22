@@ -14,84 +14,79 @@
   </head>
   <body data-theme="dark">
     <div class="page-shell">
-      <header class="hero">
-        <div>
-          <p class="eyebrow">Network Inventory</p>
-          <h1>Device visibility without digging through MQTT logs.</h1>
-          <p class="hero-copy">
-            Live device snapshots pulled from SQLite, with fast fuzzy search and sortable columns for the fields you actually care about.
-          </p>
-        </div>
-        <div class="hero-panel">
-          <div class="theme-toggle-wrap">
-            <span class="theme-toggle-label">Theme</span>
-            <button id="theme-toggle" class="theme-toggle" type="button" aria-pressed="true">
-              <span class="theme-toggle-track">
-                <span class="theme-toggle-thumb"></span>
-              </span>
-              <span id="theme-toggle-text">Dark</span>
-            </button>
-          </div>
-          <div class="search-wrap">
-            <label for="search-input">Quick search</label>
-            <input
-              id="search-input"
-              type="search"
-              placeholder="Search device, IP, host, or time"
-              autocomplete="off"
-            />
-          </div>
-          <div class="hero-actions">
-            <button id="refresh-button" type="button">Refresh</button>
-            <a id="json-link" class="secondary-action-link" href="/devices.json" target="_blank" rel="noreferrer">Open JSON</a>
-            <button id="copy-json-link" class="secondary-action-button" type="button">Copy JSON Link</button>
-            <span id="status-pill" class="status-pill">Waiting for data</span>
-          </div>
-        </div>
-      </header>
-
-      <section class="stats-grid" aria-label="Summary metrics">
-        <article class="stat-card">
-          <span class="stat-label">Visible devices</span>
-          <strong id="visible-count">0</strong>
-        </article>
-        <article class="stat-card">
-          <span class="stat-label">Loaded devices</span>
-          <strong id="total-count">0</strong>
-        </article>
-        <article class="stat-card">
-          <span class="stat-label">Last refresh</span>
-          <strong id="generated-at">-</strong>
-        </article>
-      </section>
-
-      <section class="table-card">
-        <div class="table-header-row">
-          <div>
-            <p class="section-kicker">Latest row per device</p>
-            <h2>Observed devices</h2>
-          </div>
-          <p id="results-copy" class="results-copy">No rows loaded yet.</p>
+      <main class="dashboard-layout">
+        <div class="dashboard-sidebar">
+          <header class="hero">
+            <div>
+              <p class="eyebrow">Network Inventory</p>
+              <h1>Device visibility without digging through MQTT logs.</h1>
+              <p class="hero-copy">
+                Live device snapshots pulled from SQLite, with fast fuzzy search and sortable columns for the fields you actually care about.
+              </p>
+            </div>
+            <div class="hero-panel">
+              <div class="theme-toggle-wrap">
+                <span class="theme-toggle-label">Theme</span>
+                <button id="theme-toggle" class="theme-toggle" type="button" aria-pressed="true">
+                  <span class="theme-toggle-track">
+                    <span class="theme-toggle-thumb"></span>
+                  </span>
+                  <span id="theme-toggle-text">Dark</span>
+                </button>
+              </div>
+              <div class="hero-actions">
+                <button id="refresh-button" type="button">Refresh</button>
+                <a id="json-link" class="secondary-action-link" href="/devices.json" target="_blank" rel="noreferrer">Open JSON</a>
+                <button id="copy-json-link" class="secondary-action-button" type="button">Copy JSON Link</button>
+                <span id="status-pill" class="status-pill">Waiting for data</span>
+              </div>
+            </div>
+          </header>
         </div>
 
-        <div class="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th><button type="button" class="sort-button" data-sort-key="device_name">Device</button></th>
-                <th><button type="button" class="sort-button" data-sort-key="ip_address">IP Address</button></th>
-                <th><button type="button" class="sort-button" data-sort-key="hostname">Hostname</button></th>
-                <th><button type="button" class="sort-button" data-sort-key="timestamp">Updated</button></th>
-              </tr>
-            </thead>
-            <tbody id="device-table-body">
-              <tr>
-                <td colspan="4" class="empty-state">Loading devices...</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </section>
+        <section class="table-card">
+          <div class="table-header-row">
+            <div>
+              <p class="section-kicker">Latest row per device</p>
+              <h2>Observed devices</h2>
+            </div>
+            <div class="table-toolbar">
+              <div class="search-wrap table-search-wrap">
+                <input
+                  id="search-input"
+                  type="search"
+                  placeholder="Search device, IP, host, or time"
+                  autocomplete="off"
+                  aria-label="Quick search"
+                />
+              </div>
+            </div>
+          </div>
+
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th><button type="button" class="sort-button" data-sort-key="device_name">Device</button></th>
+                  <th><button type="button" class="sort-button" data-sort-key="ip_address">IP Address</button></th>
+                  <th><button type="button" class="sort-button" data-sort-key="hostname">HOSTNAME/MAC</button></th>
+                  <th><button type="button" class="sort-button" data-sort-key="timestamp">Updated</button></th>
+                </tr>
+              </thead>
+              <tbody id="device-table-body">
+                <tr>
+                  <td colspan="4" class="empty-state">Loading devices...</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="table-footer">
+            <p id="results-copy" class="results-copy">No rows loaded yet.</p>
+            <p class="table-refresh-copy">Last refresh <span id="generated-at">-</span></p>
+          </div>
+        </section>
+      </main>
     </div>
 
     <script src="{{ url_for('static', filename='app.js') }}" defer></script>

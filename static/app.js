@@ -198,8 +198,14 @@ async function deleteDevice(deviceName) {
 }
 
 function updateSummary() {
-  visibleCount.textContent = state.visibleDevices.length.toString();
-  totalCount.textContent = state.allDevices.length.toString();
+  if (visibleCount) {
+    visibleCount.textContent = state.visibleDevices.length.toString();
+  }
+
+  if (totalCount) {
+    totalCount.textContent = state.allDevices.length.toString();
+  }
+
   resultsCopy.textContent = state.query
     ? `Showing ${state.visibleDevices.length} fuzzy matches for "${state.query}".`
     : `Showing ${state.visibleDevices.length} latest device rows.`;
