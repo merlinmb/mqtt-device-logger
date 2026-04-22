@@ -94,6 +94,7 @@ The default keys are:
 ```python
 MQTT_BROKER = "mqtt-broker.local"
 MQTT_PORT = 1883
+MQTT_KEEPALIVE = 60
 DATABASE_NAME = "device_data.db"
 WEB_HOST = "0.0.0.0"
 WEB_PORT = 8000

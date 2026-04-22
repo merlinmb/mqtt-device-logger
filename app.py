@@ -32,6 +32,7 @@ def get_env_topics(default_topics):
 
 MQTT_BROKER = os.getenv("MQTT_BROKER", "mqtt-broker.local")
 MQTT_PORT = get_env_int("MQTT_PORT", 1883)
+MQTT_KEEPALIVE = get_env_int("MQTT_KEEPALIVE", 60)
 DATABASE_NAME = os.getenv("DATABASE_NAME", "device_data.db")
 WEB_HOST = os.getenv("WEB_HOST", "0.0.0.0")
 WEB_PORT = get_env_int("WEB_PORT", 8000)
@@ -359,24 +360,64 @@ def on_message(client, userdata, msg):
         print(f"An critical error occurred processing message: {e}")
 
 
+def on_connect(client, userdata, flags, reason_code, properties):
+    if reason_code == 0:
+        reconnect_attempts = userdata.get("reconnect_attempts", 0)
+        if userdata.get("has_connected", False):
+            print(
+                f"[MQTT] Reconnected successfully after {reconnect_attempts} failed attempt(s). "
+                "Ensuring topic subscriptions are active..."
+            )
+        else:
+            print("[MQTT] Connected to broker. Ensuring topic subscriptions are active...")
+
+        userdata["has_connected"] = True
+        userdata["reconnect_attempts"] = 0
+        for topic in TOPICS:
+            client.subscribe(topic)
+            print(f"[MQTT] Subscribed to topic: {topic}")
+    else:
+        print(f"[MQTT] Connect failed with reason code: {reason_code}")
+
+
+def on_disconnect(client, userdata, disconnect_flags, reason_code, properties):
+    if reason_code == 0:
+        print("[MQTT] Disconnected cleanly.")
+    else:
+        print(
+            f"[MQTT] Unexpected disconnect (reason code: {reason_code}). "
+            "Auto-reconnect is active (backoff 1s to 30s)."
+        )
+
+
+def on_connect_fail(client, userdata):
+    reconnect_attempts = userdata.get("reconnect_attempts", 0) + 1
+    userdata["reconnect_attempts"] = reconnect_attempts
+    print(
+        f"[MQTT] Reconnect attempt {reconnect_attempts} failed. "
+        "Will retry with exponential backoff."
+    )
+
+
 def run_mqtt_listener():
     client = mqtt.Client(
         callback_api_version=mqtt.CallbackAPIVersion.VERSION2,
         client_id="python_device_logger",
+        userdata={"has_connected": False, "reconnect_attempts": 0},
     )
+    client.reconnect_delay_set(min_delay=1, max_delay=30)
+
+    client.on_connect = on_connect
+    client.on_connect_fail = on_connect_fail
+    client.on_disconnect = on_disconnect
     client.on_message = on_message
     
     print(f"[MQTT] Attempting to connect to broker at {MQTT_BROKER}:{MQTT_PORT}...")
+    print("[MQTT] Reconnect strategy: retry first connection, backoff 1s to 30s.")
     
     try:
-        client.connect(MQTT_BROKER, MQTT_PORT, 60)
-        
-        # 3. Subscribe to topics
-        for topic in TOPICS:
-            client.subscribe(topic)
-            print(f"[MQTT] Subscribed to topic: {topic}")
-
-        client.loop_forever()
+        client.connect(MQTT_BROKER, MQTT_PORT, MQTT_KEEPALIVE)
+        client.loop_forever(retry_first_connection=True)
 
     except ConnectionRefusedError:
         print("[ERROR] Connection refused. Ensure the MQTT broker is running and accessible.")
@@ -388,6 +429,7 @@ def main():
     initialize_database()
 
     print(f"[CONFIG] MQTT Broker : {MQTT_BROKER}:{MQTT_PORT}")
+    print(f"[CONFIG] Keepalive   : {MQTT_KEEPALIVE}s")
     print(f"[CONFIG] Database    : {DATABASE_NAME}")
     print(f"[CONFIG] Listening on {len(TOPICS)} topic(s):")
     for topic in TOPICS:
