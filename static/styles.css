@@ -1,0 +1,344 @@
+:root {
+  --bg: #f3efe6;
+  --bg-accent: #e3dccf;
+  --surface: rgba(255, 251, 245, 0.78);
+  --surface-strong: rgba(255, 248, 238, 0.95);
+  --border: rgba(44, 62, 80, 0.14);
+  --text: #1b2430;
+  --muted: #5f6b76;
+  --primary: #0f766e;
+  --primary-strong: #115e59;
+  --highlight: #f59e0b;
+  --shadow: 0 18px 60px rgba(27, 36, 48, 0.12);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  font-family: "Space Grotesk", sans-serif;
+  color: var(--text);
+  background:
+    radial-gradient(circle at top left, rgba(245, 158, 11, 0.24), transparent 24%),
+    radial-gradient(circle at top right, rgba(15, 118, 110, 0.2), transparent 28%),
+    linear-gradient(160deg, var(--bg) 0%, #fbf8f2 45%, var(--bg-accent) 100%);
+}
+
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background-image: linear-gradient(rgba(27, 36, 48, 0.025) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(27, 36, 48, 0.025) 1px, transparent 1px);
+  background-size: 28px 28px;
+  mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 0.6), transparent 85%);
+}
+
+.page-shell {
+  width: min(1180px, calc(100% - 32px));
+  margin: 0 auto;
+  padding: 40px 0 56px;
+}
+
+.hero,
+.table-card,
+.stat-card {
+  backdrop-filter: blur(16px);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow);
+}
+
+.hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1.8fr) minmax(280px, 1fr);
+  gap: 28px;
+  padding: 32px;
+  border-radius: 28px;
+  animation: rise-in 500ms ease-out;
+}
+
+.eyebrow,
+.section-kicker,
+.stat-label,
+.status-pill,
+.results-copy,
+th button,
+input,
+button {
+  font-family: "IBM Plex Mono", monospace;
+}
+
+.eyebrow,
+.section-kicker {
+  margin: 0 0 12px;
+  color: var(--primary-strong);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 0.8rem;
+}
+
+h1,
+h2,
+p {
+  margin: 0;
+}
+
+h1 {
+  max-width: 12ch;
+  font-size: clamp(2.8rem, 7vw, 5.4rem);
+  line-height: 0.95;
+  letter-spacing: -0.05em;
+}
+
+.hero-copy {
+  margin-top: 16px;
+  max-width: 58ch;
+  color: var(--muted);
+  font-size: 1.05rem;
+  line-height: 1.6;
+}
+
+.hero-panel {
+  display: grid;
+  gap: 18px;
+  align-self: end;
+  padding: 22px;
+  border-radius: 24px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.52), rgba(255, 255, 255, 0.2));
+  border: 1px solid rgba(255, 255, 255, 0.45);
+}
+
+.search-wrap {
+  display: grid;
+  gap: 10px;
+}
+
+.search-wrap label {
+  font-size: 0.78rem;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+input {
+  width: 100%;
+  padding: 16px 18px;
+  border-radius: 16px;
+  border: 1px solid rgba(15, 118, 110, 0.18);
+  background: var(--surface-strong);
+  color: var(--text);
+  font-size: 0.95rem;
+}
+
+input:focus {
+  outline: 2px solid rgba(15, 118, 110, 0.22);
+  border-color: rgba(15, 118, 110, 0.38);
+}
+
+.hero-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+}
+
+button {
+  cursor: pointer;
+}
+
+#refresh-button {
+  border: 0;
+  border-radius: 999px;
+  padding: 12px 18px;
+  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-strong) 100%);
+  color: white;
+  font-size: 0.85rem;
+  letter-spacing: 0.04em;
+  transition: transform 160ms ease, box-shadow 160ms ease;
+  box-shadow: 0 10px 24px rgba(15, 118, 110, 0.22);
+}
+
+#refresh-button:hover {
+  transform: translateY(-1px);
+}
+
+.status-pill {
+  display: inline-flex;
+  align-items: center;
+  min-height: 40px;
+  padding: 0 14px;
+  border-radius: 999px;
+  color: var(--primary-strong);
+  background: rgba(15, 118, 110, 0.08);
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 18px;
+  margin: 24px 0;
+}
+
+.stat-card {
+  padding: 22px 24px;
+  border-radius: 22px;
+  animation: rise-in 560ms ease-out;
+}
+
+.stat-label {
+  display: block;
+  color: var(--muted);
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.stat-card strong {
+  display: block;
+  margin-top: 12px;
+  font-size: clamp(1.8rem, 4vw, 2.7rem);
+}
+
+.table-card {
+  padding: 26px;
+  border-radius: 28px;
+  animation: rise-in 620ms ease-out;
+}
+
+.table-header-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 20px;
+  align-items: end;
+  margin-bottom: 20px;
+}
+
+.results-copy {
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+
+.table-wrap {
+  overflow-x: auto;
+  border-radius: 20px;
+  border: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.48);
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+thead {
+  background: rgba(27, 36, 48, 0.03);
+}
+
+th,
+td {
+  padding: 16px 18px;
+  text-align: left;
+}
+
+tbody tr {
+  border-top: 1px solid rgba(27, 36, 48, 0.07);
+}
+
+tbody tr:hover {
+  background: rgba(245, 158, 11, 0.08);
+}
+
+th button {
+  width: 100%;
+  border: 0;
+  padding: 0;
+  background: transparent;
+  color: var(--text);
+  text-align: left;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+th button::after {
+  content: "";
+  opacity: 0.38;
+}
+
+th button[data-direction="asc"]::after {
+  content: "  ↑";
+  opacity: 1;
+}
+
+th button[data-direction="desc"]::after {
+  content: "  ↓";
+  opacity: 1;
+}
+
+.empty-state {
+  color: var(--muted);
+  text-align: center;
+  padding: 42px 18px;
+}
+
+.device-name {
+  font-weight: 700;
+}
+
+.hostname,
+.ip,
+.timestamp {
+  color: var(--muted);
+}
+
+@keyframes rise-in {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (max-width: 900px) {
+  .hero,
+  .stats-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .table-header-row {
+    flex-direction: column;
+    align-items: start;
+  }
+}
+
+@media (max-width: 640px) {
+  .page-shell {
+    width: min(100% - 20px, 1180px);
+    padding-top: 20px;
+  }
+
+  .hero,
+  .table-card,
+  .stat-card {
+    border-radius: 22px;
+  }
+
+  .hero,
+  .table-card {
+    padding: 20px;
+  }
+
+  th,
+  td {
+    padding: 14px 12px;
+  }
+}

@@ -1,0 +1,17 @@
+# Use a slim Python image for minimal size
+FROM python:3.9-slim
+
+# Set the working directory inside the container
+WORKDIR /app
+
+# Copy the dependencies file and install dependencies
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copy the application script
+COPY app.py .
+COPY templates ./templates
+COPY static ./static
+
+# Command to run the application when the container starts
+CMD ["python", "app.py"]

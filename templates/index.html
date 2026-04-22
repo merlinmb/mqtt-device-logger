@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Home IPs Dashboard</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}" />
+  </head>
+  <body>
+    <div class="page-shell">
+      <header class="hero">
+        <div>
+          <p class="eyebrow">Network Inventory</p>
+          <h1>Device visibility without digging through MQTT logs.</h1>
+          <p class="hero-copy">
+            Live device snapshots pulled from SQLite, with fast fuzzy search and sortable columns for the fields you actually care about.
+          </p>
+        </div>
+        <div class="hero-panel">
+          <div class="search-wrap">
+            <label for="search-input">Quick search</label>
+            <input
+              id="search-input"
+              type="search"
+              placeholder="Search device, IP, host, or time"
+              autocomplete="off"
+            />
+          </div>
+          <div class="hero-actions">
+            <button id="refresh-button" type="button">Refresh</button>
+            <span id="status-pill" class="status-pill">Waiting for data</span>
+          </div>
+        </div>
+      </header>
+
+      <section class="stats-grid" aria-label="Summary metrics">
+        <article class="stat-card">
+          <span class="stat-label">Visible devices</span>
+          <strong id="visible-count">0</strong>
+        </article>
+        <article class="stat-card">
+          <span class="stat-label">Loaded devices</span>
+          <strong id="total-count">0</strong>
+        </article>
+        <article class="stat-card">
+          <span class="stat-label">Last refresh</span>
+          <strong id="generated-at">-</strong>
+        </article>
+      </section>
+
+      <section class="table-card">
+        <div class="table-header-row">
+          <div>
+            <p class="section-kicker">Latest row per device</p>
+            <h2>Observed devices</h2>
+          </div>
+          <p id="results-copy" class="results-copy">No rows loaded yet.</p>
+        </div>
+
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th><button type="button" class="sort-button" data-sort-key="device_name">Device</button></th>
+                <th><button type="button" class="sort-button" data-sort-key="ip_address">IP Address</button></th>
+                <th><button type="button" class="sort-button" data-sort-key="hostname">Hostname</button></th>
+                <th><button type="button" class="sort-button" data-sort-key="timestamp">Updated</button></th>
+              </tr>
+            </thead>
+            <tbody id="device-table-body">
+              <tr>
+                <td colspan="4" class="empty-state">Loading devices...</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </div>
+
+    <script src="{{ url_for('static', filename='app.js') }}" defer></script>
+  </body>
+</html>
