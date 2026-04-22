@@ -12,7 +12,7 @@
     />
     <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}" />
   </head>
-  <body>
+  <body data-theme="dark">
     <div class="page-shell">
       <header class="hero">
         <div>
@@ -23,6 +23,15 @@
           </p>
         </div>
         <div class="hero-panel">
+          <div class="theme-toggle-wrap">
+            <span class="theme-toggle-label">Theme</span>
+            <button id="theme-toggle" class="theme-toggle" type="button" aria-pressed="true">
+              <span class="theme-toggle-track">
+                <span class="theme-toggle-thumb"></span>
+              </span>
+              <span id="theme-toggle-text">Dark</span>
+            </button>
+          </div>
           <div class="search-wrap">
             <label for="search-input">Quick search</label>
             <input
@@ -34,6 +43,8 @@
           </div>
           <div class="hero-actions">
             <button id="refresh-button" type="button">Refresh</button>
+            <a id="json-link" class="secondary-action-link" href="/devices.json" target="_blank" rel="noreferrer">Open JSON</a>
+            <button id="copy-json-link" class="secondary-action-button" type="button">Copy JSON Link</button>
             <span id="status-pill" class="status-pill">Waiting for data</span>
           </div>
         </div>

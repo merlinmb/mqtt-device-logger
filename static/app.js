@@ -4,8 +4,10 @@ const state = {
   sortKey: "timestamp",
   sortDirection: "desc",
   query: "",
+  theme: "dark",
 };
 
+const body = document.body;
 const searchInput = document.querySelector("#search-input");
 const refreshButton = document.querySelector("#refresh-button");
 const statusPill = document.querySelector("#status-pill");
@@ -15,6 +17,39 @@ const totalCount = document.querySelector("#total-count");
 const generatedAt = document.querySelector("#generated-at");
 const resultsCopy = document.querySelector("#results-copy");
 const sortButtons = Array.from(document.querySelectorAll(".sort-button"));
+const themeToggle = document.querySelector("#theme-toggle");
+const themeToggleText = document.querySelector("#theme-toggle-text");
+const jsonLink = document.querySelector("#json-link");
+const copyJsonLinkButton = document.querySelector("#copy-json-link");
+
+function getJsonLink() {
+  return new URL("/devices.json", window.location.href).toString();
+}
+
+function syncJsonLink() {
+  if (jsonLink) {
+    jsonLink.href = getJsonLink();
+  }
+}
+
+function deviceDeleteLabel(deviceName) {
+  return `Delete ${normalizeValue(deviceName) || "device"}`;
+}
+
+function deviceIpHref(ipAddress) {
+  const normalizedIp = normalizeValue(ipAddress);
+
+  if (!normalizedIp) {
+    return "";
+  }
+
+  return /^[a-z]+:\/\//i.test(normalizedIp) ? normalizedIp : `http://${normalizedIp}`;
+}
+
+function hasNavigableIp(ipAddress) {
+  const normalizedIp = normalizeValue(ipAddress);
+  return normalizedIp && normalizedIp.toUpperCase() !== "N/A";
+}
 
 function normalizeValue(value) {
   return (value ?? "").toString().trim();
@@ -22,6 +57,14 @@ function normalizeValue(value) {
 
 function compareValues(left, right) {
   return left.localeCompare(right, undefined, { numeric: true, sensitivity: "base" });
+}
+
+function applyTheme(theme) {
+  const nextTheme = theme === "light" ? "light" : "dark";
+  state.theme = nextTheme;
+  body.dataset.theme = nextTheme;
+  themeToggle.setAttribute("aria-pressed", String(nextTheme === "dark"));
+  themeToggleText.textContent = nextTheme === "dark" ? "Dark" : "Light";
 }
 
 function fuzzyScore(haystack, needle) {
@@ -101,15 +144,57 @@ function renderTable() {
   tableBody.innerHTML = state.visibleDevices
     .map(
       (device) => `
-        <tr>
-          <td class="device-name">${escapeHtml(device.device_name)}</td>
-          <td class="ip">${escapeHtml(device.ip_address)}</td>
+        <tr data-device-name="${escapeHtml(device.device_name)}">
+          <td class="device-name-cell">
+            <span class="device-name">${escapeHtml(device.device_name)}</span>
+            <button
+              type="button"
+              class="row-delete-button"
+              data-device-name="${escapeHtml(device.device_name)}"
+              aria-label="${escapeHtml(deviceDeleteLabel(device.device_name))}"
+              title="${escapeHtml(deviceDeleteLabel(device.device_name))}"
+            >
+              ×
+            </button>
+          </td>
+          <td class="ip">${hasNavigableIp(device.ip_address)
+            ? `<a href="${escapeHtml(deviceIpHref(device.ip_address))}" target="_blank" rel="noreferrer">${escapeHtml(device.ip_address)}</a>`
+            : escapeHtml(device.ip_address || "-")}</td>
           <td class="hostname">${escapeHtml(device.hostname || "-")}</td>
           <td class="timestamp">${escapeHtml(device.timestamp)}</td>
         </tr>
       `,
     )
     .join("");
+}
+
+async function deleteDevice(deviceName) {
+  const normalizedName = normalizeValue(deviceName);
+
+  if (!normalizedName) {
+    return;
+  }
+
+  state.allDevices = state.allDevices.filter((device) => normalizeValue(device.device_name) !== normalizedName);
+  applyFilters();
+  statusPill.textContent = `Deleting ${normalizedName}`;
+
+  try {
+    const response = await fetch(`/api/devices/${encodeURIComponent(normalizedName)}`, {
+      method: "DELETE",
+      headers: { Accept: "application/json" },
+    });
+
+    if (!response.ok) {
+      throw new Error(`Delete failed with ${response.status}`);
+    }
+
+    statusPill.textContent = `Deleted ${normalizedName}`;
+  } catch (error) {
+    statusPill.textContent = "Delete failed";
+    resultsCopy.textContent = error.message;
+    await loadDevices();
+  }
 }
 
 function updateSummary() {
@@ -165,6 +250,50 @@ async function loadDevices() {
   }
 }
 
+async function loadPreferences() {
+  try {
+    const response = await fetch("/api/preferences", { headers: { Accept: "application/json" } });
+
+    if (!response.ok) {
+      throw new Error(`Preference request failed with ${response.status}`);
+    }
+
+    const payload = await response.json();
+    applyTheme(payload.theme);
+  } catch {
+    applyTheme("dark");
+  }
+}
+
+async function persistTheme(theme) {
+  const response = await fetch("/api/preferences/theme", {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+      Accept: "application/json",
+    },
+    body: JSON.stringify({ theme }),
+  });
+
+  if (!response.ok) {
+    throw new Error(`Theme update failed with ${response.status}`);
+  }
+
+  return response.json();
+}
+
+async function copyJsonLink() {
+  const jsonUrl = getJsonLink();
+
+  try {
+    await navigator.clipboard.writeText(jsonUrl);
+    statusPill.textContent = "JSON link copied";
+  } catch {
+    resultsCopy.textContent = jsonUrl;
+    statusPill.textContent = "Copy failed";
+  }
+}
+
 searchInput.addEventListener("input", (event) => {
   state.query = event.target.value;
   applyFilters();
@@ -172,6 +301,36 @@ searchInput.addEventListener("input", (event) => {
 
 refreshButton.addEventListener("click", () => {
   loadDevices();
+});
+
+copyJsonLinkButton?.addEventListener("click", () => {
+  copyJsonLink();
+});
+
+themeToggle.addEventListener("click", async () => {
+  const previousTheme = state.theme;
+  const nextTheme = previousTheme === "dark" ? "light" : "dark";
+
+  applyTheme(nextTheme);
+
+  try {
+    await persistTheme(nextTheme);
+    statusPill.textContent = `${nextTheme === "dark" ? "Dark" : "Light"} mode saved`;
+  } catch (error) {
+    applyTheme(previousTheme);
+    statusPill.textContent = "Theme save failed";
+    resultsCopy.textContent = error.message;
+  }
+});
+
+tableBody.addEventListener("click", (event) => {
+  const deleteButton = event.target.closest(".row-delete-button");
+
+  if (!deleteButton) {
+    return;
+  }
+
+  deleteDevice(deleteButton.dataset.deviceName);
 });
 
 sortButtons.forEach((button) => {
@@ -190,6 +349,9 @@ sortButtons.forEach((button) => {
   });
 });
 
+syncJsonLink();
 updateSortIndicators();
+applyTheme("dark");
+loadPreferences();
 loadDevices();
 window.setInterval(loadDevices, 15000);

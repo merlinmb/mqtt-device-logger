@@ -157,11 +157,13 @@ If the container needs access to services on your local network, ensure Docker n
 `deploy.ps1` is intended to deploy the app to a remote Docker host over SSH. It performs these high-level steps:
 
 - verifies local `ssh` and `scp`
-- checks remote `docker`, `git`, and Docker Compose availability
+- checks remote `docker` and `git` availability
 - clones or updates the repository on the remote host
 - creates a remote `.env` file if missing
-- rebuilds and starts the container
+- rebuilds and starts the container with `docker build` and `docker run`
 - performs a health check and shows recent logs
+
+If you do not pass `-Port`, the script now publishes the same host port as `WEB_PORT` in the remote `.env`. That keeps direct browser access and reverse proxies such as nginx aligned with the app's configured listen port.
 
 Run it with defaults:
 
