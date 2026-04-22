@@ -4,6 +4,7 @@ import json
 import datetime
 import os
 import threading
+import queue
 
 from flask import Flask, jsonify, render_template, request
 from dotenv import load_dotenv
@@ -33,6 +34,7 @@ def get_env_topics(default_topics):
 MQTT_BROKER = os.getenv("MQTT_BROKER", "mqtt-broker.local")
 MQTT_PORT = get_env_int("MQTT_PORT", 1883)
 MQTT_KEEPALIVE = get_env_int("MQTT_KEEPALIVE", 60)
+MQTT_QUEUE_MAXSIZE = get_env_int("MQTT_QUEUE_MAXSIZE", 1000)
 DATABASE_NAME = os.getenv("DATABASE_NAME", "device_data.db")
 WEB_HOST = os.getenv("WEB_HOST", "0.0.0.0")
 WEB_PORT = get_env_int("WEB_PORT", 8000)
@@ -45,6 +47,7 @@ TOPICS = get_env_topics([
 ])
 
 app = Flask(__name__)
+message_queue = queue.Queue(maxsize=MQTT_QUEUE_MAXSIZE)
 
 
 def first_present(*values):
@@ -300,10 +303,8 @@ def delete_device(device_name):
 def health_check():
     return jsonify({"status": "ok"})
 
-def on_message(client, userdata, msg):
-    """The callback function executed when a message is received."""
-    topic = msg.topic
-    payload = msg.payload.decode('utf-8')
+def process_incoming_message(topic, payload):
+    """Parse and persist an MQTT message outside the network loop thread."""
     device = get_device_id_from_topic(topic)
     
     print(f"[MQTT] Message received | Topic: {topic} | Device: {device} | Payload: {payload[:100]}{'...' if len(payload) > 100 else ''}")
@@ -360,22 +361,65 @@ def on_message(client, userdata, msg):
         print(f"An critical error occurred processing message: {e}")
 
 
+def on_message(client, userdata, msg):
+    """Keep callback fast so ping/keepalive handling is not delayed."""
+    topic = msg.topic
+    payload = msg.payload.decode("utf-8", errors="replace")
+
+    try:
+        message_queue.put_nowait((topic, payload))
+    except queue.Full:
+        print(
+            "[MQTT] Message queue is full; dropping message to preserve connection health. "
+            f"Topic: {topic}"
+        )
+
+
+def message_processor_loop():
+    while True:
+        topic, payload = message_queue.get()
+        try:
+            process_incoming_message(topic, payload)
+        finally:
+            message_queue.task_done()
+
+
+def is_session_present(flags):
+    if flags is None:
+        return False
+
+    if hasattr(flags, "session_present"):
+        return bool(flags.session_present)
+
+    if isinstance(flags, dict):
+        return bool(flags.get("session present") or flags.get("session_present"))
+
+    return False
+
+
 def on_connect(client, userdata, flags, reason_code, properties):
     if reason_code == 0:
         reconnect_attempts = userdata.get("reconnect_attempts", 0)
+        session_present = is_session_present(flags)
+
         if userdata.get("has_connected", False):
             print(
                 f"[MQTT] Reconnected successfully after {reconnect_attempts} failed attempt(s). "
-                "Ensuring topic subscriptions are active..."
+                f"Session present={session_present}."
             )
         else:
-            print("[MQTT] Connected to broker. Ensuring topic subscriptions are active...")
+            print(f"[MQTT] Connected to broker. Session present={session_present}.")
 
         userdata["has_connected"] = True
         userdata["reconnect_attempts"] = 0
-        for topic in TOPICS:
-            client.subscribe(topic)
-            print(f"[MQTT] Subscribed to topic: {topic}")
+
+        if session_present:
+            print("[MQTT] Broker kept the existing session; skipping resubscribe.")
+        else:
+            print("[MQTT] Subscribing to topics...")
+            for topic in TOPICS:
+                client.subscribe(topic)
+                print(f"[MQTT] Subscribed to topic: {topic}")
     else:
         print(f"[MQTT] Connect failed with reason code: {reason_code}")
 
@@ -403,6 +447,7 @@ def run_mqtt_listener():
     client = mqtt.Client(
         callback_api_version=mqtt.CallbackAPIVersion.VERSION2,
         client_id="python_device_logger",
+        clean_session=False,
         userdata={"has_connected": False, "reconnect_attempts": 0},
     )
     client.reconnect_delay_set(min_delay=1, max_delay=30)
@@ -430,10 +475,14 @@ def main():
 
     print(f"[CONFIG] MQTT Broker : {MQTT_BROKER}:{MQTT_PORT}")
     print(f"[CONFIG] Keepalive   : {MQTT_KEEPALIVE}s")
+    print(f"[CONFIG] Queue size  : {MQTT_QUEUE_MAXSIZE}")
     print(f"[CONFIG] Database    : {DATABASE_NAME}")
     print(f"[CONFIG] Listening on {len(TOPICS)} topic(s):")
     for topic in TOPICS:
         print(f"[CONFIG]   {topic}")
+
+    worker_thread = threading.Thread(target=message_processor_loop, name="mqtt-message-processor", daemon=True)
+    worker_thread.start()
 
     mqtt_thread = threading.Thread(target=run_mqtt_listener, name="mqtt-listener", daemon=True)
     mqtt_thread.start()
