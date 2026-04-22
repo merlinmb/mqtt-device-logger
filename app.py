@@ -193,12 +193,18 @@ def write_to_db(device, ip, hostname):
     try:
         with sqlite3.connect(DATABASE_NAME) as conn:
             cursor = conn.cursor()
+            existing = cursor.execute(
+                "SELECT id FROM device_details WHERE device_name = ? LIMIT 1",
+                (device,)
+            ).fetchone()
+            is_new = existing is None
             cursor.execute(
                 "INSERT INTO device_details (device_name, ip_address, hostname, timestamp) VALUES (?, ?, ?, ?)",
                 (device, ip, hostname, timestamp)
             )
             conn.commit()
-        print(f"\n[DB WRITE] Device '{device}' updated: IP={ip}, Host={hostname}")
+        label = "[NEW]" if is_new else "[UPDATE]"
+        print(f"[DB WRITE] {label} Device '{device}' | IP={ip} | Host={hostname} | Time={timestamp}")
     except sqlite3.Error as e:
         print(f"[ERROR] Database error occurred during write: {e}")
 
@@ -299,7 +305,7 @@ def on_message(client, userdata, msg):
     payload = msg.payload.decode('utf-8')
     device = get_device_id_from_topic(topic)
     
-    print(f"\n[RECV] Topic: {topic} | Device: {device} | Payload: {payload[:70]}...")
+    print(f"[MQTT] Message received | Topic: {topic} | Device: {device} | Payload: {payload[:100]}{'...' if len(payload) > 100 else ''}")
     
     ip = "N/A"
     hostname = "N/A"
@@ -380,6 +386,12 @@ def run_mqtt_listener():
 
 def main():
     initialize_database()
+
+    print(f"[CONFIG] MQTT Broker : {MQTT_BROKER}:{MQTT_PORT}")
+    print(f"[CONFIG] Database    : {DATABASE_NAME}")
+    print(f"[CONFIG] Listening on {len(TOPICS)} topic(s):")
+    for topic in TOPICS:
+        print(f"[CONFIG]   {topic}")
 
     mqtt_thread = threading.Thread(target=run_mqtt_listener, name="mqtt-listener", daemon=True)
     mqtt_thread.start()
