@@ -31,6 +31,19 @@ def get_env_topics(default_topics):
     return topics or default_topics
 
 
+def to_bool(value, default=False):
+    if value is None:
+        return default
+
+    normalized = str(value).strip().lower()
+    if normalized in {"1", "true", "yes", "y", "on"}:
+        return True
+    if normalized in {"0", "false", "no", "n", "off"}:
+        return False
+
+    return default
+
+
 MQTT_BROKER = os.getenv("MQTT_BROKER", "mqtt-broker.local")
 MQTT_PORT = get_env_int("MQTT_PORT", 1883)
 MQTT_KEEPALIVE = get_env_int("MQTT_KEEPALIVE", 60)
@@ -142,9 +155,14 @@ def initialize_database():
             device_name TEXT NOT NULL,
             ip_address TEXT NOT NULL,
             hostname TEXT,
+            is_stale INTEGER NOT NULL DEFAULT 0,
             timestamp TEXT NOT NULL
         )
     """)
+    ensure_device_details_schema(cursor)
+    cursor.execute(
+        "CREATE INDEX IF NOT EXISTS idx_device_details_active_ip ON device_details (is_stale, ip_address, id)"
+    )
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS ui_preferences (
             preference_key TEXT PRIMARY KEY,
@@ -155,6 +173,18 @@ def initialize_database():
     conn.commit()
     conn.close()
     print(f"[DB] Database initialized: {DATABASE_NAME}")
+
+
+def ensure_device_details_schema(cursor):
+    """Apply minimal forward-compatible schema migrations for device_details."""
+    columns = {
+        row[1] for row in cursor.execute("PRAGMA table_info(device_details)").fetchall()
+    }
+
+    if "is_stale" not in columns:
+        cursor.execute(
+            "ALTER TABLE device_details ADD COLUMN is_stale INTEGER NOT NULL DEFAULT 0"
+        )
 
 
 def get_db_connection():
@@ -191,40 +221,84 @@ def set_ui_preference(preference_key, preference_value):
         cursor.execute(query, (preference_key, preference_value, timestamp))
         conn.commit()
 
+
+def has_trackable_ip(ip):
+    normalized_ip = first_present(ip).upper()
+    return normalized_ip not in {"N/A", "N/A (WLED STATE)", "UNKNOWN"}
+
 def write_to_db(device, ip, hostname):
-    """Connects to the database and inserts the new record."""
+    """Persist a message while treating IP as the active device identity."""
+    if not has_trackable_ip(ip):
+        print(f"[DB SKIP] Ignoring message with non-trackable IP for device '{device}'.")
+        return
+
     timestamp = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
     try:
         with sqlite3.connect(DATABASE_NAME) as conn:
             cursor = conn.cursor()
             existing = cursor.execute(
-                "SELECT id FROM device_details WHERE device_name = ? LIMIT 1",
-                (device,)
+                """
+                SELECT id, device_name
+                FROM device_details
+                WHERE ip_address = ? AND is_stale = 0
+                ORDER BY id DESC
+                LIMIT 1
+                """,
+                (ip,)
             ).fetchone()
             is_new = existing is None
+            previous_device = existing[1] if existing else None
+
             cursor.execute(
-                "INSERT INTO device_details (device_name, ip_address, hostname, timestamp) VALUES (?, ?, ?, ?)",
+                "UPDATE device_details SET is_stale = 1 WHERE ip_address = ? AND is_stale = 0",
+                (ip,)
+            )
+
+            cursor.execute(
+                """
+                INSERT INTO device_details (device_name, ip_address, hostname, is_stale, timestamp)
+                VALUES (?, ?, ?, 0, ?)
+                """,
                 (device, ip, hostname, timestamp)
             )
             conn.commit()
-        label = "[NEW]" if is_new else "[UPDATE]"
-        print(f"[DB WRITE] {label} Device '{device}' | IP={ip} | Host={hostname} | Time={timestamp}")
+
+        if is_new:
+            label = "[NEW]"
+        elif previous_device != device:
+            label = "[IP REASSIGNED]"
+        else:
+            label = "[UPDATE]"
+
+        print(
+            f"[DB WRITE] {label} Device '{device}' | IP={ip} | Host={hostname} | Time={timestamp}"
+        )
+
+        if previous_device and previous_device != device:
+            print(
+                f"[DB STALE] IP {ip} moved from '{previous_device}' to '{device}'. "
+                "Previous mapping marked stale."
+            )
     except sqlite3.Error as e:
         print(f"[ERROR] Database error occurred during write: {e}")
 
 
-def fetch_latest_devices():
+def fetch_latest_devices(include_stale=False):
     initialize_database()
-    query = """
-        SELECT id, device_name, ip_address, hostname, timestamp
-        FROM device_details
-        WHERE id IN (
-            SELECT MAX(id)
+    if include_stale:
+        query = """
+            SELECT id, device_name, ip_address, hostname, is_stale, timestamp
             FROM device_details
-            GROUP BY device_name
-        )
-        ORDER BY timestamp DESC, id DESC
-    """
+            ORDER BY timestamp DESC, id DESC
+        """
+    else:
+        query = """
+            SELECT id, device_name, ip_address, hostname, is_stale, timestamp
+            FROM device_details
+            WHERE is_stale = 0
+            ORDER BY timestamp DESC, id DESC
+        """
+
     with get_db_connection() as conn:
         rows = conn.execute(query).fetchall()
 
@@ -246,11 +320,13 @@ def index():
 
 @app.get("/api/devices")
 def list_devices():
-    devices = fetch_latest_devices()
+    include_stale = to_bool(request.args.get("include_stale"), default=False)
+    devices = fetch_latest_devices(include_stale=include_stale)
     return jsonify(
         {
             "devices": devices,
             "count": len(devices),
+            "include_stale": include_stale,
             "generated_at": datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
         }
     )
@@ -263,7 +339,8 @@ def devices_json():
 
 @app.get("/devices-table.json")
 def devices_table_json():
-    return jsonify(fetch_latest_devices())
+    include_stale = to_bool(request.args.get("include_stale"), default=False)
+    return jsonify(fetch_latest_devices(include_stale=include_stale))
 
 
 @app.get("/api/preferences")

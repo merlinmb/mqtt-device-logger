@@ -11,6 +11,7 @@ It now also serves a browser UI for exploring the latest device records with fuz
 - Parses supported payload shapes for IP address and hostname data
 - Writes each observed device update to `device_data.db`
 - Serves a frontend with quick filtering, sort controls, and live refresh
+- Treats IP address as the active identity and marks replaced IP mappings as stale
 
 The current implementation listens to these topics:
 
@@ -24,7 +25,10 @@ Each matching message is written to the `device_details` table with:
 - `device_name`
 - `ip_address`
 - `hostname`
+- `is_stale`
 - `timestamp`
+
+When a new message arrives for an IP already owned by another active row, the previous active row for that IP is marked stale and the newest row becomes the active mapping.
 
 ## Project Files
 
@@ -83,6 +87,17 @@ The browser reads data from the JSON endpoint below:
 
 ```text
 GET /api/devices
+```
+
+Optional query parameter:
+
+- `include_stale=true` to include historical stale rows alongside active rows
+
+Examples:
+
+```text
+GET /api/devices?include_stale=true
+GET /devices-table.json?include_stale=true
 ```
 
 ## Configuration
@@ -180,7 +195,7 @@ Example with explicit target and rebuild:
 
 ## Notes And Limitations
 
-- The UI currently shows the latest row per device, not full historical browse/filter views.
+- The UI shows active (non-stale) rows keyed by IP, not a full historical browse/filter view.
 - Payload parsing is intentionally narrow and only covers the topic shapes implemented in `app.py`.
 
 ## Next Improvements
