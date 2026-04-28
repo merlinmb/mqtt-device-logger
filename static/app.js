@@ -208,7 +208,7 @@ function updateSummary() {
 
   resultsCopy.textContent = state.query
     ? `Showing ${state.visibleDevices.length} fuzzy matches for "${state.query}".`
-    : `Showing ${state.visibleDevices.length} active IP-owned rows.`;
+    : `Showing ${state.visibleDevices.length} latest active rows (one per device name).`;
 }
 
 function updateSortIndicators() {

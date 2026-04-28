@@ -193,6 +193,12 @@ Example with explicit target and rebuild:
 .\deploy.ps1 -TargetHost mqtt-host.local -User deploy -Rebuild
 ```
 
+Example that also resets server-side data by pushing a clean database file:
+
+```powershell
+.\deploy.ps1 -PushCleanDatabase
+```
+
 ## Notes And Limitations
 
 - The UI shows active (non-stale) rows keyed by IP, not a full historical browse/filter view.

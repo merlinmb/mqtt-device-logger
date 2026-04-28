@@ -227,7 +227,7 @@ def has_trackable_ip(ip):
     return normalized_ip not in {"N/A", "N/A (WLED STATE)", "UNKNOWN"}
 
 def write_to_db(device, ip, hostname):
-    """Persist a message while treating IP as the active device identity."""
+    """Persist a message while keeping one active row per IP and per device name."""
     if not has_trackable_ip(ip):
         print(f"[DB SKIP] Ignoring message with non-trackable IP for device '{device}'.")
         return
@@ -249,9 +249,15 @@ def write_to_db(device, ip, hostname):
             is_new = existing is None
             previous_device = existing[1] if existing else None
 
+            # Mark prior active rows stale when either the IP or device name is reused.
             cursor.execute(
-                "UPDATE device_details SET is_stale = 1 WHERE ip_address = ? AND is_stale = 0",
-                (ip,)
+                """
+                UPDATE device_details
+                SET is_stale = 1
+                WHERE is_stale = 0
+                  AND (ip_address = ? OR device_name = ?)
+                """,
+                (ip, device)
             )
 
             cursor.execute(
@@ -294,8 +300,22 @@ def fetch_latest_devices(include_stale=False):
     else:
         query = """
             SELECT id, device_name, ip_address, hostname, is_stale, timestamp
-            FROM device_details
-            WHERE is_stale = 0
+            FROM (
+                SELECT
+                    id,
+                    device_name,
+                    ip_address,
+                    hostname,
+                    is_stale,
+                    timestamp,
+                    ROW_NUMBER() OVER (
+                        PARTITION BY LOWER(TRIM(device_name))
+                        ORDER BY timestamp DESC, id DESC
+                    ) AS row_number
+                FROM device_details
+                WHERE is_stale = 0
+            ) latest
+            WHERE row_number = 1
             ORDER BY timestamp DESC, id DESC
         """
 

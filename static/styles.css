@@ -1,6 +1,8 @@
 :root {
   --bg: #10161d;
   --bg-accent: #18232d;
+  --bg-glow-a: rgba(245, 158, 11, 0.18);
+  --bg-glow-b: rgba(59, 130, 246, 0.2);
   --surface: rgba(17, 27, 36, 0.8);
   --surface-strong: rgba(21, 34, 45, 0.96);
   --panel-surface: linear-gradient(180deg, rgba(32, 48, 61, 0.82), rgba(18, 30, 40, 0.72));
@@ -18,8 +20,10 @@
 }
 
 body[data-theme="light"] {
-  --bg: #f3efe6;
-  --bg-accent: #e3dccf;
+  --bg: #f5f7fb;
+  --bg-accent: #e7edf7;
+  --bg-glow-a: rgba(251, 113, 133, 0.15);
+  --bg-glow-b: rgba(59, 130, 246, 0.14);
   --surface: rgba(255, 251, 245, 0.78);
   --surface-strong: rgba(255, 248, 238, 0.95);
   --panel-surface: linear-gradient(180deg, rgba(255, 255, 255, 0.52), rgba(255, 255, 255, 0.2));
@@ -45,8 +49,8 @@ body {
   font-family: "Space Grotesk", sans-serif;
   color: var(--text);
   background:
-    radial-gradient(circle at top left, rgba(245, 158, 11, 0.18), transparent 24%),
-    radial-gradient(circle at top right, rgba(45, 212, 191, 0.16), transparent 28%),
+    radial-gradient(circle at top left, var(--bg-glow-a), transparent 24%),
+    radial-gradient(circle at top right, var(--bg-glow-b), transparent 28%),
     linear-gradient(160deg, var(--bg) 0%, color-mix(in srgb, var(--bg) 80%, #071018 20%) 45%, var(--bg-accent) 100%);
 }
 
