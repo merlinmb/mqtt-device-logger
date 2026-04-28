@@ -6,7 +6,7 @@ import os
 import threading
 import queue
 
-from flask import Flask, jsonify, render_template, request
+from flask import Flask, jsonify, redirect, render_template, request, url_for
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -336,6 +336,11 @@ def delete_device_history(device_name):
 @app.get("/")
 def index():
     return render_template("index.html")
+
+
+@app.get("/favicon.ico")
+def favicon():
+    return redirect(url_for("static", filename="favicon.svg"), code=302)
 
 
 @app.get("/api/devices")
