@@ -5,6 +5,7 @@ import datetime
 import os
 import threading
 import queue
+import time
 
 from flask import Flask, jsonify, redirect, render_template, request, url_for
 from dotenv import load_dotenv
@@ -546,30 +547,34 @@ def on_connect_fail(client, userdata):
 
 
 def run_mqtt_listener():
-    client = mqtt.Client(
-        callback_api_version=mqtt.CallbackAPIVersion.VERSION2,
-        client_id="python_device_logger",
-        clean_session=False,
-        userdata={"has_connected": False, "reconnect_attempts": 0},
-    )
-    client.reconnect_delay_set(min_delay=1, max_delay=30)
-
-    client.on_connect = on_connect
-    client.on_connect_fail = on_connect_fail
-    client.on_disconnect = on_disconnect
-    client.on_message = on_message
-    
     print(f"[MQTT] Attempting to connect to broker at {MQTT_BROKER}:{MQTT_PORT}...")
     print("[MQTT] Reconnect strategy: retry first connection, backoff 1s to 30s.")
-    
-    try:
-        client.connect(MQTT_BROKER, MQTT_PORT, MQTT_KEEPALIVE)
-        client.loop_forever(retry_first_connection=True)
 
-    except ConnectionRefusedError:
-        print("[ERROR] Connection refused. Ensure the MQTT broker is running and accessible.")
-    except Exception as e:
-        print(f"[ERROR] An unexpected error occurred: {e}")
+    while True:
+        client = mqtt.Client(
+            callback_api_version=mqtt.CallbackAPIVersion.VERSION2,
+            client_id="python_device_logger",
+            clean_session=False,
+            userdata={"has_connected": False, "reconnect_attempts": 0},
+        )
+        client.reconnect_delay_set(min_delay=1, max_delay=30)
+
+        client.on_connect = on_connect
+        client.on_connect_fail = on_connect_fail
+        client.on_disconnect = on_disconnect
+        client.on_message = on_message
+
+        try:
+            client.connect(MQTT_BROKER, MQTT_PORT, MQTT_KEEPALIVE)
+            client.loop_forever(retry_first_connection=True)
+
+        except ConnectionRefusedError:
+            print("[ERROR] Connection refused. Ensure the MQTT broker is running and accessible.")
+        except Exception as e:
+            print(f"[ERROR] An unexpected error occurred: {e}")
+
+        print("[MQTT] Listener loop exited unexpectedly; restarting client in 5s.")
+        time.sleep(5)
 
 
 def main():
