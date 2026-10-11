@@ -71,7 +71,7 @@ HOME_SERVERS = get_env_topics([
     "savage",
     "framepi2",
     "framepi3",
-    "rpi2b",
+    "pi2b",
     "pihole",
     "pihome",
 ], env_name="HOME_SERVERS")
