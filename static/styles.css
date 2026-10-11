@@ -82,13 +82,13 @@ body[data-theme="light"]::before {
   }
 
   .dashboard-layout {
-    grid-template-columns: minmax(280px, 340px) minmax(0, 1fr);
+    grid-template-columns: minmax(280px, 340px) minmax(240px, 280px) minmax(0, 1fr);
   }
 }
 
 .dashboard-layout {
   display: grid;
-  grid-template-columns: minmax(300px, 380px) minmax(0, 1fr);
+  grid-template-columns: minmax(260px, 340px) minmax(220px, 260px) minmax(0, 1fr);
   gap: 24px;
   align-items: start;
 }
@@ -102,6 +102,7 @@ body[data-theme="light"]::before {
 
 .hero,
 .table-card,
+.servers-card,
 .stat-card {
   backdrop-filter: blur(16px);
   background: var(--surface);
@@ -338,6 +339,42 @@ button {
   min-width: 0;
 }
 
+.servers-card {
+  padding: 26px;
+  border-radius: 28px;
+  animation: rise-in 590ms ease-out;
+  min-width: 0;
+}
+
+.server-list {
+  list-style: none;
+  margin: 20px 0 0;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  background: var(--table-surface);
+}
+
+.server-item {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 16px;
+  font-size: 0.9rem;
+}
+
+.server-item + .server-item {
+  border-top: 1px solid color-mix(in srgb, var(--text) 8%, transparent);
+}
+
+.server-name {
+  font-weight: 700;
+}
+
+.server-item .ip {
+  font-family: "IBM Plex Mono", monospace;
+}
+
 .table-header-row {
   display: flex;
   justify-content: space-between;
@@ -549,6 +586,7 @@ body[data-theme="dark"] .ip a:focus-visible {
 
   .hero,
   .table-card,
+  .servers-card,
   .stat-card {
     border-radius: 22px;
   }
@@ -558,7 +596,8 @@ body[data-theme="dark"] .ip a:focus-visible {
   }
 
   .hero,
-  .table-card {
+  .table-card,
+  .servers-card {
     padding: 20px;
   }
 

@@ -117,6 +117,8 @@ WEB_PORT = 8000
 
 Subscribed topics can be overridden with `MQTT_TOPICS` as a comma-separated value.
 
+The "Home servers" column in the UI lists the current IP for each device name in `HOME_SERVERS` (comma-separated, matched case-insensitively against the latest active device rows). Names with no active row show as `-`.
+
 If you need to point the service at a different broker or topic structure, update `.env` before running or building the container.
 
 ## Supported Payload Handling

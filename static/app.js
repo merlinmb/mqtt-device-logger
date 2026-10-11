@@ -1,5 +1,6 @@
 const state = {
   allDevices: [],
+  homeServers: [],
   visibleDevices: [],
   sortKey: "timestamp",
   sortDirection: "desc",
@@ -12,6 +13,7 @@ const searchInput = document.querySelector("#search-input");
 const refreshButton = document.querySelector("#refresh-button");
 const statusPill = document.querySelector("#status-pill");
 const tableBody = document.querySelector("#device-table-body");
+const serverList = document.querySelector("#server-list");
 const visibleCount = document.querySelector("#visible-count");
 const totalCount = document.querySelector("#total-count");
 const generatedAt = document.querySelector("#generated-at");
@@ -135,6 +137,28 @@ function applyFilters() {
   updateSummary();
 }
 
+function renderServers() {
+  const byName = new Map(
+    state.allDevices.map((device) => [normalizeValue(device.device_name).toLowerCase(), device]),
+  );
+
+  serverList.innerHTML = state.homeServers
+    .map((name) => {
+      const device = byName.get(normalizeValue(name).toLowerCase());
+      const ip = device && hasNavigableIp(device.ip_address) ? device.ip_address : "";
+
+      return `
+        <li class="server-item">
+          <span class="server-name">${escapeHtml(name)}</span>
+          <span class="ip">${ip
+            ? `<a href="${escapeHtml(deviceIpHref(ip))}" target="_blank" rel="noreferrer">${escapeHtml(ip)}</a>`
+            : "-"}</span>
+        </li>
+      `;
+    })
+    .join("");
+}
+
 function renderTable() {
   if (!state.visibleDevices.length) {
     tableBody.innerHTML = '<tr><td colspan="4" class="empty-state">No devices match the current search.</td></tr>';
@@ -177,6 +201,7 @@ async function deleteDevice(deviceName) {
 
   state.allDevices = state.allDevices.filter((device) => normalizeValue(device.device_name) !== normalizedName);
   applyFilters();
+  renderServers();
   statusPill.textContent = `Deleting ${normalizedName}`;
 
   try {
@@ -243,6 +268,8 @@ async function loadDevices() {
 
     const payload = await response.json();
     state.allDevices = payload.devices ?? [];
+    state.homeServers = payload.home_servers ?? [];
+    renderServers();
     generatedAt.textContent = payload.generated_at ?? "-";
     statusPill.textContent = `Synced ${state.allDevices.length} devices`;
     applyFilters();

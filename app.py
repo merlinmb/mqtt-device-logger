@@ -23,8 +23,8 @@ def get_env_int(name, default):
         return default
 
 
-def get_env_topics(default_topics):
-    value = os.getenv("MQTT_TOPICS")
+def get_env_topics(default_topics, env_name="MQTT_TOPICS"):
+    value = os.getenv(env_name)
     if not value:
         return default_topics
 
@@ -59,6 +59,22 @@ TOPICS = get_env_topics([
     "wled/+/state",
     "home/device/+/info",
 ])
+
+HOME_SERVERS = get_env_topics([
+    "hal",
+    "flight",
+    "mithril",
+    "shadowfax",
+    "rackpi5",
+    "homebridge",
+    "merlinhome",
+    "savage",
+    "framepi2",
+    "framepi3",
+    "rpi2b",
+    "pihole",
+    "pihome",
+], env_name="HOME_SERVERS")
 
 app = Flask(__name__)
 message_queue = queue.Queue(maxsize=MQTT_QUEUE_MAXSIZE)
@@ -353,6 +369,7 @@ def list_devices():
             "devices": devices,
             "count": len(devices),
             "include_stale": include_stale,
+            "home_servers": HOME_SERVERS,
             "generated_at": datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
         }
     )
