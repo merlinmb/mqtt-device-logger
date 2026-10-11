@@ -1,6 +1,7 @@
 const state = {
   allDevices: [],
   homeServers: [],
+  generatedAt: "",
   visibleDevices: [],
   sortKey: "timestamp",
   sortDirection: "desc",
@@ -137,6 +138,20 @@ function applyFilters() {
   updateSummary();
 }
 
+const STALE_AFTER_MS = 24 * 60 * 60 * 1000;
+
+function serverFreshness(device) {
+  if (!device) {
+    return "missing";
+  }
+
+  // Both timestamps are naive server-local strings, so compare them to each other, not to the browser clock.
+  const parse = (value) => new Date(normalizeValue(value).replace(" ", "T")).getTime();
+  const age = parse(state.generatedAt) - parse(device.timestamp);
+
+  return Number.isNaN(age) || age > STALE_AFTER_MS ? "stale" : "fresh";
+}
+
 function renderServers() {
   const byName = new Map(
     state.allDevices.map((device) => [normalizeValue(device.device_name).toLowerCase(), device]),
@@ -149,7 +164,9 @@ function renderServers() {
 
       return `
         <li class="server-item">
-          <span class="server-name">${escapeHtml(name)}</span>
+          <span class="server-name">
+            <span class="server-dot" data-status="${serverFreshness(device)}"></span>${escapeHtml(name)}
+          </span>
           <span class="ip">${ip
             ? `<a href="${escapeHtml(deviceIpHref(ip))}" target="_blank" rel="noreferrer">${escapeHtml(ip)}</a>`
             : "-"}</span>
@@ -269,6 +286,7 @@ async function loadDevices() {
     const payload = await response.json();
     state.allDevices = payload.devices ?? [];
     state.homeServers = payload.home_servers ?? [];
+    state.generatedAt = payload.generated_at ?? "";
     renderServers();
     generatedAt.textContent = payload.generated_at ?? "-";
     statusPill.textContent = `Synced ${state.allDevices.length} devices`;
