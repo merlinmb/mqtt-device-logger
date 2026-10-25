@@ -490,6 +490,9 @@ th button[data-direction="desc"]::after {
 }
 
 .device-name {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
   font-weight: 700;
 }
 

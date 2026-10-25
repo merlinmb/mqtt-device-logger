@@ -187,7 +187,7 @@ function renderTable() {
       (device) => `
         <tr data-device-name="${escapeHtml(device.device_name)}">
           <td class="device-name-cell">
-            <span class="device-name">${escapeHtml(device.device_name)}</span>
+            <span class="device-name"><span class="server-dot" data-status="${serverFreshness(device)}"></span>${escapeHtml(device.device_name)}</span>
             <button
               type="button"
               class="row-delete-button"
