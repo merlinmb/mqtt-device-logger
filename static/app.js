@@ -165,7 +165,7 @@ function renderServers() {
       return `
         <li class="server-item">
           <span class="server-name">
-            <span class="server-dot" data-status="${serverFreshness(device)}"></span>${escapeHtml(name)}
+            <span class="server-dot" data-status="${serverFreshness(device)}" title="${escapeHtml(device ? `Last updated ${device.timestamp}` : "No data yet")}"></span>${escapeHtml(name)}
           </span>
           <span class="ip">${ip
             ? `<a href="${escapeHtml(deviceIpHref(ip))}" target="_blank" rel="noreferrer">${escapeHtml(ip)}</a>`
@@ -187,7 +187,7 @@ function renderTable() {
       (device) => `
         <tr data-device-name="${escapeHtml(device.device_name)}">
           <td class="device-name-cell">
-            <span class="device-name"><span class="server-dot" data-status="${serverFreshness(device)}"></span>${escapeHtml(device.device_name)}</span>
+            <span class="device-name"><span class="server-dot" data-status="${serverFreshness(device)}" title="${escapeHtml(`Last updated ${device.timestamp}`)}"></span>${escapeHtml(device.device_name)}</span>
             <button
               type="button"
               class="row-delete-button"

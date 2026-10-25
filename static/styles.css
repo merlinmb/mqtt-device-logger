@@ -371,6 +371,7 @@ button {
   border-radius: 999px;
   background: var(--muted);
   opacity: 0.5;
+  cursor: help;
 }
 
 .server-dot[data-status="fresh"] {
