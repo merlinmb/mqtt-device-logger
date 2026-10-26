@@ -61,19 +61,20 @@ TOPICS = get_env_topics([
 ])
 
 HOME_SERVERS = get_env_topics([
-    "hal",
     "flight",
-    "mithril",
-    "shadowfax",
-    "rackpi5",
-    "homebridge",
-    "merlinhome",
-    "savage",
     "framepi2",
     "framepi3",
+    "hal",
+    "homebridge",
+    "merlinhome",
+    "mithril",
     "pi2b",
     "pihole",
     "pihome",
+    "rackpi5",
+    "savage",
+    "shadowfax",
+    "touchpi",
 ], env_name="HOME_SERVERS")
 
 app = Flask(__name__)
